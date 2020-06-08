@@ -1,12 +1,13 @@
 import React, { FunctionComponent, useState, ChangeEvent, useEffect } from 'react';
 import { Place } from '@googlemaps/google-maps-services-js'
-import { Row, Col, Typography, Grid } from 'antd';
+import { Row, Col, Typography, Grid, Drawer } from 'antd';
 import { MapContainer } from './Map/map';
 import { SearchPanel } from './SearchPanel/searchPanel';
 import { fetchHospitals } from './lib/utils/placesRequest';
 import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks } from './lib/utils/constants';
 import { MarkerOptions } from './Map/map.interface';
 import { getDistance } from 'geolib';
+import { SearchResults } from './SearchPanel/SearchResults/searchResults';
 
 const { Title } = Typography;
 const { useBreakpoint } = Grid;
@@ -23,6 +24,7 @@ export const App: FunctionComponent = () => {
     const [ currentPage, setCurrentPage ] = useState(1);
     const [ mapMarkers, setMapMarkers ] = useState<MarkerOptions[]>([])
     const [ mapZoom, setMapZoom ] = useState(13);
+    const [ drawerIsOpen, setDrawerIsOpen ] = useState(false);
     const { xl } = useBreakpoint();
 
     // Data fetching effect
@@ -102,6 +104,7 @@ export const App: FunctionComponent = () => {
         setQuery(query);
         setCurrentPage(1);  // reset current page because the data has been filtered
         setHospitalsData(filteredHospitalData(allHospitalsData, query))
+        setDrawerIsOpen(true);
 
     }
 
@@ -126,6 +129,7 @@ export const App: FunctionComponent = () => {
             color: 'red',
             location: center
         }, location])
+        setDrawerIsOpen(false);
     }
 
     // render
@@ -140,7 +144,7 @@ export const App: FunctionComponent = () => {
         <Col span={columnSpan} style={{
             padding: '24px 24px 0 24px',
             backgroundColor: '#ffffff',
-            flex: (xl || query.length > 0) ? '0 0 100%' :'none'
+            flex: (xl) ? '0 0 100%' :'none'
         }}>
             <Title level={xl ? 2 : 4}>nearst</Title>
             <SearchPanel
@@ -158,7 +162,7 @@ export const App: FunctionComponent = () => {
                 center={center}
             />
         </Col>
-        {<Col span={columnSpan} style={{
+        <Col span={columnSpan} style={{
             backgroundColor: '#eeeeee',
             display: 'flex',
             flex: 1,
@@ -171,6 +175,27 @@ export const App: FunctionComponent = () => {
                 zoom={mapZoom}
                 markerLocations={mapMarkers}
             ></MapContainer>
-        </Col>}
+        </Col>
+        { !xl &&
+            <Drawer
+                title="Results"
+                placement="bottom"
+                onClose={() => {
+                    setDrawerIsOpen(false)
+                }}
+                visible={drawerIsOpen}
+                mask={false}
+            >
+                <SearchResults
+                    pagination={false}
+                    handleMarkerIconClick={handleMarkerIconClick}
+                    handlePageChange={handlePageChange}
+                    center={center}
+                    hospitalsData={hospitalsData}
+                    currentPage={currentPage}
+                    pageSize={3}
+                ></SearchResults>
+            </Drawer>
+        }
     </Row>
 }
