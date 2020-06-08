@@ -2,6 +2,7 @@
   "name": "enye-cc",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://david-okolo.github.io/enye-cc",
   "dependencies": {
     "@ant-design/colors": "^4.0.0",
     "@ant-design/icons": "^4.2.1",
@@ -18,6 +19,7 @@
     "antd": "^4.3.1",
     "craco-less": "^1.17.0",
     "geolib": "^3.3.1",
+    "gh-pages": "^3.0.0",
     "google-map-react": "^1.1.7",
     "google-maps": "^4.2.3",
     "google-maps-react": "^2.0.6",
@@ -29,6 +31,8 @@
     "typescript": "^3.7.5"
   },
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",
