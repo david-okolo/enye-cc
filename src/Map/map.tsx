@@ -30,8 +30,19 @@ export const MapContainer: FunctionComponent<IMapContainer> = (props) => {
                 yesIWantToUseGoogleMapApiInternals
                 onGoogleApiLoaded={({map, maps}) => {initializeMap(map, maps)}}
             >
-                {markerLocations.map(({location, color, text}) => {
-                    return <Marker handleMarkerIconClick={handleMarkerIconClick} key={text} lat={location.lat} lng={location.lng} color={color} text={text}/>
+                {markerLocations.map(({location, color, text, title, content}) => {
+                    return (
+                        <Marker 
+                            title={title}
+                            content={content}
+                            handleMarkerIconClick={handleMarkerIconClick} 
+                            key={text} 
+                            lat={location.lat} 
+                            lng={location.lng} 
+                            color={color} 
+                            text={text}
+                            />
+                        )
                 })}
             </GoogleMapReact>
         </div>

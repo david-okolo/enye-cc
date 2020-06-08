@@ -6,6 +6,8 @@ export interface LatLng {
 }
 
 export interface MarkerOptions {
+    content: string
+    title: string
     location: LatLng
     color: string
     text: string

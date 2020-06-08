@@ -30,3 +30,10 @@ export const marks = {
     30: '30 KM',
     40: '40 KM'
 }
+
+export const PartialUserMapIcon = {
+    content: '',
+    title: 'You',
+    color: 'red',
+    text: 'you'
+}

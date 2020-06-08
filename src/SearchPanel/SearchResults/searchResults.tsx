@@ -31,6 +31,8 @@ export const SearchResults: FunctionComponent<ISearchResultsProps> = (props) => 
                         <EnvironmentFilled 
                             key='view-on-map'
                             onClick={() => handleMarkerIconClick({
+                                title: item.name,
+                                content: item.formatted_address,
                                 location: item.geometry.location,
                                 color: 'green',
                                 text: 'destination'

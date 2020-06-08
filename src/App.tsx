@@ -4,7 +4,7 @@ import { Row, Col, Typography, Grid, Drawer } from 'antd';
 import { MapContainer } from './Map/map';
 import { SearchPanel } from './SearchPanel/searchPanel';
 import { fetchHospitals } from './lib/utils/placesRequest';
-import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks } from './lib/utils/constants';
+import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks, PartialUserMapIcon } from './lib/utils/constants';
 import { MarkerOptions } from './Map/map.interface';
 import { getDistance } from 'geolib';
 import { SearchResults } from './SearchPanel/SearchResults/searchResults';
@@ -39,6 +39,17 @@ export const App: FunctionComponent = () => {
                         return (getDistance(item.geometry.location, center) / 1000) < searchRadius
                     }
                     return false;
+                }).sort((itemA, itemB) => {
+                    // sorts based of their proximity to the user
+                    if((itemA.geometry&& itemB.geometry) && (getDistance(itemA.geometry.location, center) > getDistance(itemB.geometry.location, center))) {
+                        return 1;
+                    }
+
+                    if((itemA.geometry&& itemB.geometry) && (getDistance(itemA.geometry.location, center) < getDistance(itemB.geometry.location, center))) {
+                        return -1;
+                    }
+
+                    return 0;
                 })
                 setAllHospitalsData(filtered);
 
@@ -53,6 +64,8 @@ export const App: FunctionComponent = () => {
 
                 const markers = (queryFiltered ? queryFiltered : filtered).map((item: any) => {
                     return {
+                        content: item.formatted_address,
+                        title: item.name,
                         color: 'white',
                         text: item.id,
                         location: item.geometry.location
@@ -60,8 +73,7 @@ export const App: FunctionComponent = () => {
                 });
 
                 setMapMarkers([...markers, {
-                    color: 'red',
-                    text: 'you',
+                    ...PartialUserMapIcon,
                     location: center
                 }])
             })
@@ -79,8 +91,7 @@ export const App: FunctionComponent = () => {
                 })
                 setMapMarkers([
                     { 
-                        text: 'you',
-                        color: 'white',
+                        ...PartialUserMapIcon,
                         location: {
                             lat: latitude,
                             lng: longitude
@@ -125,11 +136,16 @@ export const App: FunctionComponent = () => {
 
     const handleMarkerIconClick = (location: MarkerOptions) => {
         setMapMarkers([{
-            text: 'you',
-            color: 'red',
+            ...PartialUserMapIcon,
             location: center
         }, location])
-        setDrawerIsOpen(false);
+
+        if(xl) {
+            setDrawerIsOpen(false);
+        } else {
+            setQuery(location.title)
+            setDrawerIsOpen(true)
+        }
     }
 
     // render
@@ -146,7 +162,7 @@ export const App: FunctionComponent = () => {
             backgroundColor: '#ffffff',
             flex: (xl) ? '0 0 100%' :'none'
         }}>
-            <Title level={xl ? 2 : 4}>nearst</Title>
+            <Title level={xl ? 2 : 4}>Find nearest hospital</Title>
             <SearchPanel
                 cropped={!!xl}
                 handleMarkerIconClick={handleMarkerIconClick}
