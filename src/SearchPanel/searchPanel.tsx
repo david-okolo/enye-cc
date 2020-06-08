@@ -1,10 +1,9 @@
 import React, { FunctionComponent } from 'react';
-import { List, Divider, Typography, Skeleton, Row, Col } from 'antd';
+import { Divider, Typography, Skeleton, Row, Col } from 'antd';
 import { SearchBar } from './SearchBar/searchBar';
 import { ISearchPanelProps } from './searchPanel.interface';
-import { EnvironmentFilled} from '@ant-design/icons';
 import { FaMapMarkedAlt } from 'react-icons/fa';
-import { getDistance } from 'geolib'
+import { SearchResults } from './SearchResults/searchResults';
 
 const { Text } = Typography;
 
@@ -33,40 +32,15 @@ export const SearchPanel: FunctionComponent<ISearchPanelProps> = (props) => {
                 active
             >
                 <Divider></Divider>
-                <List
-                    size='large'
-                    pagination={{
-                        current: currentPage,
-                        onChange: handlePageChange,
-                        pageSize: 6,
-                    }}
-                    dataSource={hospitalsData}
-                    renderItem={item => (
-                        <List.Item
-                            actions={[
-                                <EnvironmentFilled 
-                                    key='view-on-map'
-                                    onClick={() => handleMarkerIconClick({
-                                        location: item.geometry.location,
-                                        color: 'green',
-                                        text: 'destination'
-                                    })}
-                                    />
-                            ]}
-                        >
-                            <List.Item.Meta
-                                title={item.name}
-                                description={item.formatted_address}
-                            />
-                            <div>{
-                                (getDistance(item.geometry.location, center) / 1000).toFixed(1)
-                            }km</div>
-                        </List.Item>
-                        )
-                    }
-                >
-                    
-                </List>
+                <SearchResults
+                    pagination={true}
+                    handleMarkerIconClick={handleMarkerIconClick}
+                    center={center}
+                    handlePageChange={handlePageChange}
+                    pageSize={6}
+                    hospitalsData={hospitalsData}
+                    currentPage={currentPage}
+                />
             </Skeleton>}
         </>
     )
