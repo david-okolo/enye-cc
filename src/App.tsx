@@ -6,7 +6,6 @@ import { SearchPanel } from './SearchPanel/searchPanel';
 import { fetchHospitals } from './lib/utils/placesRequest';
 import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks, PartialUserMapIcon } from './lib/utils/constants';
 import { MarkerOptions } from './Map/map.interface';
-import { getDistance } from 'geolib';
 import { SearchResults } from './SearchPanel/SearchResults/searchResults';
 
 const { Title } = Typography;
@@ -34,35 +33,18 @@ export const App: FunctionComponent = () => {
         {
             fetchHospitals(searchRadius, center).then(response => {
                 const { data }: { data: Place[] } = response;
-                const filtered = data.filter((item) => {
-                    if(item.geometry) {
-                        return (getDistance(item.geometry.location, center) / 1000) < searchRadius
-                    }
-                    return false;
-                }).sort((itemA, itemB) => {
-                    // sorts based of their proximity to the user
-                    if((itemA.geometry&& itemB.geometry) && (getDistance(itemA.geometry.location, center) > getDistance(itemB.geometry.location, center))) {
-                        return 1;
-                    }
-
-                    if((itemA.geometry&& itemB.geometry) && (getDistance(itemA.geometry.location, center) < getDistance(itemB.geometry.location, center))) {
-                        return -1;
-                    }
-
-                    return 0;
-                })
-                setAllHospitalsData(filtered);
+                setAllHospitalsData(data);
 
                 let queryFiltered;
 
                 if (query) {
-                    queryFiltered = filteredHospitalData(filtered, query)
+                    queryFiltered = filteredHospitalData(data, query)
                 }
 
-                setHospitalsData(queryFiltered ? queryFiltered : filtered)
+                setHospitalsData(queryFiltered ? queryFiltered : data)
                 setDataIsLoading(false);
 
-                const markers = (queryFiltered ? queryFiltered : filtered).map((item: any) => {
+                const markers = (queryFiltered ? queryFiltered : data).map((item: any) => {
                     return {
                         content: item.formatted_address,
                         title: item.name,
