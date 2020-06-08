@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/enye-cc/precache-manifest.9890a7e5ed8f9d794a8b8bd095aba2c1.js"
+  "/enye-cc/precache-manifest.d3a64f53f7296d7f8b8faaa6ef889397.js"
 );
 
 self.addEventListener('message', (event) => {
