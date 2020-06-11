@@ -91,7 +91,7 @@ export const Home: FunctionComponent<{
 
                 props.setPastSearches(pastSearches);
             })
-            setPastClicked(true)
+            setPastClicked(false)
         } else {
             setDataIsLoading(false);
         }

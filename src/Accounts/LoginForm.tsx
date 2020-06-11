@@ -1,5 +1,5 @@
-import React, { FC } from 'react';
-import { Form, Input, Checkbox, Button, Space } from "antd"
+import React, { FC, useState } from 'react';
+import { Form, Input, Checkbox, Button, Space, Alert } from "antd"
 import { LockOutlined } from '@ant-design/icons';
 import { AiOutlineMail } from 'react-icons/ai';
 import { IAccountFormProps } from './account-form.interface';
@@ -11,6 +11,7 @@ export const LoginForm: FC<IAccountFormProps> = (props) => {
     const { setIsLoggedIn } = props;
 
     const history = useHistory();
+    const [ visible, setVisible ] = useState(false);
 
     const onFinish = async (values: any) => {
         const response:any = await makeRequest({
@@ -27,10 +28,16 @@ export const LoginForm: FC<IAccountFormProps> = (props) => {
             localStorage.setItem('token', response.data.token)
             history.push('/');
             setIsLoggedIn(true);
+        } else {
+            setVisible(true);
+            setTimeout(() => {
+                setVisible(false);
+            }, 2000)
         }
     }
 
     return (
+        <>
         <Form
             name="normal_login"
             className="login-form"
@@ -65,5 +72,7 @@ export const LoginForm: FC<IAccountFormProps> = (props) => {
             </Form.Item>
             </Space>
         </Form>
+        {visible && <Alert message='Invalid login details' type='error' showIcon></Alert>}
+        </>
     )
 }

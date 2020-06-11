@@ -24,6 +24,7 @@ export const App: FC = () => {
         fetch(backendUrl+'/profile', {
             method: 'GET',
             headers: {
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             }
         }).then((response) => {
@@ -33,6 +34,8 @@ export const App: FC = () => {
             return response.json()
         }).then((data) => {
             setPastSearches(data.pastSearches);
+        }).catch(e => {
+            console.log(e)
         });
     }, [isLoggedIn])
     return (

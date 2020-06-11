@@ -12,10 +12,13 @@ export const MapContainer: FunctionComponent<IMapContainer> = (props) => {
   const {center, zoom, markerLocations, handleMarkerIconClick } = props
 
     const initializeMap = (map: any, maps: any) => {
-        const styledMap = new maps.StyledMapType(darkMapStyleOptions)
 
-        map.mapTypes.set('styled_map', styledMap);
-        map.setMapTypeId('styled_map');
+        if(maps && map) {
+            const styledMap = new maps.StyledMapType(darkMapStyleOptions)
+
+            map.mapTypes.set('styled_map', styledMap);
+            map.setMapTypeId('styled_map');
+        }
     }
 
     return (

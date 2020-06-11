@@ -1,5 +1,5 @@
-import React, { FC } from 'react';
-import { Form, Input, Button, Space } from "antd"
+import React, { FC, useState } from 'react';
+import { Form, Input, Button, Space, Alert } from "antd"
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { AiOutlineMail } from 'react-icons/ai';
 import { useHistory } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { makeRequest, HTTPMethod } from '../lib/utils/request';
 export const RegisterForm: FC<IAccountFormProps> = (props) => {
 
     const history = useHistory();
+    const [ visible, setVisible ] = useState(false);
 
     const onFinish = async (values: any) => {
         const response:any = await makeRequest({
@@ -24,10 +25,16 @@ export const RegisterForm: FC<IAccountFormProps> = (props) => {
 
         if (response.success) {
             history.push('/account');
+        } else {
+            setVisible(true);
+            setTimeout(() => {
+                setVisible(false);
+            }, 2000)
         }
     }
 
     return (
+        <>
         <Form
             name="normal_login"
             initialValues={{ remember: true }}
@@ -35,7 +42,7 @@ export const RegisterForm: FC<IAccountFormProps> = (props) => {
         >
             <Space direction='vertical'>
             <Form.Item
-                name="fullname"
+                name="name"
                 rules={[{ required: true, message: 'Please input your full name!' }]}
             >
                 <Input size='large' prefix={<UserOutlined className="site-form-item-icon" />} placeholder="Full Name" />
@@ -64,5 +71,7 @@ export const RegisterForm: FC<IAccountFormProps> = (props) => {
             </Form.Item>
             </Space>
         </Form>
+        {visible && <Alert message='Registration failed. Try again' type='error' showIcon></Alert>}
+        </>
     )
 }

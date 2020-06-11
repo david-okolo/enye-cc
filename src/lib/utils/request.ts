@@ -27,7 +27,6 @@ export const makeRequest = async ({ path, method, body, auth}: IRequestOptions) 
         }
     }
 
-    console.log(options);
     const response = await fetch(`${backendUrl}${path}`, options);
 
 
