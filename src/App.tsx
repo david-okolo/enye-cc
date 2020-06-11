@@ -1,199 +1,98 @@
-import React, { FunctionComponent, useState, ChangeEvent, useEffect } from 'react';
-import { Place } from '@googlemaps/google-maps-services-js'
-import { Row, Col, Typography, Grid, Drawer } from 'antd';
-import { MapContainer } from './Map/map';
-import { SearchPanel } from './SearchPanel/searchPanel';
-import { fetchHospitals } from './lib/utils/placesRequest';
-import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks, PartialUserMapIcon } from './lib/utils/constants';
-import { MarkerOptions } from './Map/map.interface';
-import { SearchResults } from './SearchPanel/SearchResults/searchResults';
+import React, { FC, useEffect, useState, Dispatch, SetStateAction } from 'react';
+import { HashRouter, Link, Switch, Route } from 'react-router-dom';
+import { PageHeader, Button } from 'antd';
+import { LoginOutlined, SearchOutlined, LogoutOutlined } from '@ant-design/icons';
+import { Home } from './Home/Home';
+import { PastSearch } from './lib/utils/interface';
+import { backendUrl } from './lib/utils/constants';
+import { Accounts } from './Accounts/Accounts';
 
-const { Title } = Typography;
-const { useBreakpoint } = Grid;
 
-export const App: FunctionComponent = () => {
+export const App: FC = () => {
 
-    // initialize states
-    const [ allHospitalsData, setAllHospitalsData ] = useState<Place[]>([]);
-    const [searchRadius, setSearchRadius] = useState(10);
-    const [query, setQuery] = useState('');
-    const [ hospitalsData, setHospitalsData ] = useState(allHospitalsData);
-    const [ dataIsLoading, setDataIsLoading ] = useState(true);
-    const [center, setCenter] = useState(DEFAULT_LAT_LNG);
-    const [ currentPage, setCurrentPage ] = useState(1);
-    const [ mapMarkers, setMapMarkers ] = useState<MarkerOptions[]>([])
-    const [ mapZoom, setMapZoom ] = useState(13);
-    const [ drawerIsOpen, setDrawerIsOpen ] = useState(false);
-    const { xl } = useBreakpoint();
+    const [isLoggedIn, setIsLoggedIn ] = useState(false);
+    const [ pastSearches, setPastSearches ]: [
+        PastSearch[],
+        Dispatch<SetStateAction<PastSearch[]>>
+    ] = useState<PastSearch[]>([]);
+    
+    const [ pastSearchVisible, setPastSearchVisible ] = useState(false);
 
-    // Data fetching effect
     useEffect(() => {
-        
-        if(center.lat !== DEFAULT_LAT_LNG.lat && center.lng !== DEFAULT_LAT_LNG.lng)
-        {
-            fetchHospitals(searchRadius, center).then(response => {
-                const { data }: { data: Place[] } = response;
-                setAllHospitalsData(data);
+        const token = localStorage.getItem('token');
 
-                let queryFiltered;
-
-                if (query) {
-                    queryFiltered = filteredHospitalData(data, query)
-                }
-
-                setHospitalsData(queryFiltered ? queryFiltered : data)
-                setDataIsLoading(false);
-
-                const markers = (queryFiltered ? queryFiltered : data).map((item: any) => {
-                    return {
-                        content: item.formatted_address,
-                        title: item.name,
-                        color: 'white',
-                        text: item.id,
-                        location: item.geometry.location
-                    }
-                });
-
-                setMapMarkers([...markers, {
-                    ...PartialUserMapIcon,
-                    location: center
-                }])
-            })
-        }
-    }, [searchRadius, center, query])
-
-    // get current location
-    useEffect(() => {
-        if('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
-                setCenter({
-                    lat: latitude,
-                    lng: longitude
-                })
-                setMapMarkers([
-                    { 
-                        ...PartialUserMapIcon,
-                        location: {
-                            lat: latitude,
-                            lng: longitude
-                        }
-                    }
-                ]);
-            })
-        }
-    }, []);
-
-
-    // Event Handlers
-    const filteredHospitalData = (data: any, query: string) => {
-        return data.filter(({name}: { name: string}) => {
-            return name.match(genRegex(query))
+        fetch(backendUrl+'/profile', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        }).then((response) => {
+            if(response.ok) {
+                setIsLoggedIn(true);
+            }
+            return response.json()
+        }).then((data) => {
+            setPastSearches(data.pastSearches);
         });
-    }
-
-    const handleSearchInputChange = async (e: ChangeEvent<HTMLInputElement>) => {
-        const query = e.target.value
-        setQuery(query);
-        setCurrentPage(1);  // reset current page because the data has been filtered
-        setHospitalsData(filteredHospitalData(allHospitalsData, query))
-        setDrawerIsOpen(true);
-
-    }
-
-    const handleSearchRadiusChange = (value: number | [number, number]) => {
-        setDataIsLoading(true); // set skeleton to loading
-        setCurrentPage(1); // reset current page because the data has been changed
-        setSearchRadius(Array.isArray(value) ? value[0] : value)
-
-        const realValue: number = typeof value === 'number' ? value : value[0];
-        const zoom = radiusToZoom(realValue);
-        
-        setMapZoom(zoom);
-    }
-
-    const handlePageChange = (page: number, pageSIze: number | undefined) => {
-        setCurrentPage(page)
-    }
-
-    const handleMarkerIconClick = (location: MarkerOptions) => {
-        setMapMarkers([{
-            ...PartialUserMapIcon,
-            location: center
-        }, location])
-
-        if(xl) {
-            setDrawerIsOpen(false);
-        } else {
-            setQuery(location.title)
-            setDrawerIsOpen(true)
-        }
-    }
-
-    // render
-
-    const columnSpan = xl ? 12 : 24; // if the screen size is xl split into 2 columns if not take full page
-    return <Row style={{
-        display: 'flex',
-        flexFlow: xl ? 'row' : 'column',
-        height: '100vh',
-        alignItems: 'stretch'
-    }}>
-        <Col span={columnSpan} style={{
-            padding: '24px 24px 0 24px',
-            backgroundColor: '#ffffff',
-            flex: (xl) ? '0 0 100%' :'none'
-        }}>
-            <Title level={xl ? 2 : 4}>Find nearest hospital</Title>
-            <SearchPanel
-                cropped={!!xl}
-                handleMarkerIconClick={handleMarkerIconClick}
-                handleSearchInputChange={handleSearchInputChange}
-                handleSearchRadiusChange={handleSearchRadiusChange}
-                handlePageChange={handlePageChange}
-                marks={marks}
-                hospitalsData={hospitalsData}
-                searchRadius={searchRadius}
-                query={query}
-                dataIsLoading={dataIsLoading}
-                currentPage={currentPage}
-                center={center}
-            />
-        </Col>
-        <Col span={columnSpan} style={{
-            backgroundColor: '#eeeeee',
-            display: 'flex',
-            flex: 1,
-            overflow: 'auto'
-        }}>
-            <MapContainer
-                handleMarkerIconClick={handleMarkerIconClick}
-                center={center}
-                setCenter={setCenter}
-                zoom={mapZoom}
-                markerLocations={mapMarkers}
-            ></MapContainer>
-        </Col>
-        { !xl &&
-            <Drawer
-                title="Results"
-                placement="bottom"
-                onClose={() => {
-                    setDrawerIsOpen(false)
-                }}
-                visible={drawerIsOpen}
-                mask={false}
-            >
-                <SearchResults
-                    pagination={false}
-                    handleMarkerIconClick={handleMarkerIconClick}
-                    handlePageChange={handlePageChange}
-                    center={center}
-                    hospitalsData={hospitalsData}
-                    currentPage={currentPage}
-                    pageSize={3}
-                ></SearchResults>
-            </Drawer>
-        }
-    </Row>
+    }, [isLoggedIn])
+    return (
+        <HashRouter basename='/'>
+            <PageHeader
+            title="nearst"
+            extra={!isLoggedIn ? [
+                <Link
+                    key='login'
+                    to="/account"
+                >
+                    <Button
+                    type='link'
+                    size="large"
+                    icon={<LoginOutlined/>}
+                    >Login</Button>
+                </Link>
+            ] : [
+                    <Button
+                        key='past-searches'
+                        type='primary'
+                        size="large"
+                        icon={<SearchOutlined/>}
+                        onClick={() => {
+                            setPastSearchVisible(true)
+                        }}
+                    >
+                        Past Searches
+                    </Button>,
+                    <Button
+                        key='logout'
+                        type='link'
+                        size="large"
+                        shape='circle'
+                        icon={<LogoutOutlined/>}
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            setIsLoggedIn(false)
+                        }}
+                    >
+                        Logout
+                    </Button>
+            ]}
+            ></PageHeader>
+            <Switch>
+                <Route exact path='/'>
+                    <Home
+                        setPastSearches={setPastSearches}
+                        setPastSearchVisible={setPastSearchVisible}
+                        pastSearchVisible={pastSearchVisible}
+                        isLoggedIn={isLoggedIn}
+                        pastSearches={pastSearches}
+                    />
+                </Route>
+                <Route path='/account'>
+                    <Accounts
+                        setIsLoggedIn={setIsLoggedIn}
+                    />
+                </Route>
+            </Switch>
+        </HashRouter>
+    )
 }
