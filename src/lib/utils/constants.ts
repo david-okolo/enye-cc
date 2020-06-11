@@ -1,9 +1,11 @@
 export const DEFAULT_SEARCH_RADIUS = 10; // 10Km
-export const GOOGLE_API_KEY = 'AIzaSyCTBRe18aNjO1y6ZF44Eyp0n2gddKtUYgc';
+export const GOOGLE_API_KEY = 'AIzaSyC43CWO8vyaWVaiCVtMnkpINJgsH0_9rTc';
 export const DEFAULT_LAT_LNG = {
     lat: 6.54,
     lng: 3.39
 }
+
+export const DEFAULT_QUERY = 'hospitals';
 
 export const genRegex = (query: string) => {
     return new RegExp(query, 'gi')
@@ -37,3 +39,20 @@ export const PartialUserMapIcon = {
     color: 'red',
     text: 'you'
 }
+
+export const DEFAULT_OPTIONS = [
+    {
+        value: "hospital"
+    },
+    {
+        value: "pharmacy"
+    },
+    {
+        value: "clinic"
+    },
+    {
+        value: "medical office"
+    }
+];
+
+export const backendUrl = "http://localhost:5000"
