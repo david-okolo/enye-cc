@@ -9,7 +9,6 @@ import { Accounts } from './Accounts/Accounts';
 
 
 export const App: FC = () => {
-
     const [isLoggedIn, setIsLoggedIn ] = useState(false);
     const [ pastSearches, setPastSearches ]: [
         PastSearch[],
@@ -21,14 +20,14 @@ export const App: FC = () => {
     useEffect(() => {
         const token = localStorage.getItem('token');
 
-        fetch(backendUrl+'/profile', {
+        fetch(backendUrl+(token ? '/profile' : '/search/all'), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             }
         }).then((response) => {
-            if(response.ok) {
+            if(response.ok && !!token) {
                 setIsLoggedIn(true);
             }
             return response.json()
@@ -42,18 +41,7 @@ export const App: FC = () => {
         <HashRouter basename='/'>
             <PageHeader
             title="nearst"
-            extra={!isLoggedIn ? [
-                <Link
-                    key='login'
-                    to="/account"
-                >
-                    <Button
-                    type='link'
-                    size="large"
-                    icon={<LoginOutlined/>}
-                    >Login</Button>
-                </Link>
-            ] : [
+            extra={[
                     <Button
                         key='past-searches'
                         type='primary'
@@ -65,19 +53,29 @@ export const App: FC = () => {
                     >
                         Past Searches
                     </Button>,
-                    <Button
-                        key='logout'
-                        type='link'
-                        size="large"
-                        shape='circle'
-                        icon={<LogoutOutlined/>}
-                        onClick={() => {
-                            localStorage.removeItem('token');
-                            setIsLoggedIn(false)
-                        }}
+                    <Link
+                        key='login'
+                        to={isLoggedIn ? '/' : "/account" }
                     >
-                        Logout
-                    </Button>
+                        <Button
+                            key='logout'
+                            type='link'
+                            size="large"
+                            shape='circle'
+                            icon={isLoggedIn ? <LogoutOutlined/> : <LoginOutlined/>}
+                            onClick={() => {
+                                if(isLoggedIn) {
+                                    localStorage.removeItem('token');
+                                    setIsLoggedIn(false)
+                                }  else {
+                                    
+                                }
+                                
+                            }}
+                        >
+                            {isLoggedIn ? 'Logout' : 'Login'}
+                        </Button>
+                    </Link>
             ]}
             ></PageHeader>
             <Switch>
