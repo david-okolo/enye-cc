@@ -83,7 +83,7 @@ export const Home: FunctionComponent<IHomeProps> = (props) => {
                 let pastSearchArray = props.pastSearches;
 
                 if( !pastClicked ) {
-                    pastSearchArray = [ ...props.pastSearches, {
+                    pastSearchArray = [ ...(pastSearches.length > 0 ? pastSearches : props.pastSearches), {
                         keyword: query,
                         radius: searchRadius * 1000,
                         timestamp:  Date.now()
