@@ -4,26 +4,8 @@ export const DEFAULT_LAT_LNG = {
     lat: 6.54,
     lng: 3.39
 }
-
 export const DEFAULT_QUERY = 'hospitals';
-
-export const genRegex = (query: string) => {
-    return new RegExp(query, 'gi')
-}
-
-export const radiusToZoom = (radius: number) => {
-    if (radius > 39) {
-        return 9;
-    } else if (radius > 24) {
-        return 10;
-    } else if (radius > 15) {
-        return 11;
-    } else if (radius > 9) {
-        return 12;
-    } else {
-        return 13;
-    }
-}
+export const DEFAULT_MAP_ZOOM = 13;
 
 export const marks = {
     1: '1 KM',

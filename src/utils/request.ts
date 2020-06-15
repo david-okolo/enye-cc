@@ -1,4 +1,5 @@
 import { backendUrl } from "./constants"
+import ApolloClient from 'apollo-boost';
 
 export enum HTTPMethod {
     GET = 'GET',
@@ -9,10 +10,10 @@ export interface IRequestOptions {
     path: string
     method?: HTTPMethod
     body?: any
-    auth?: boolean
+    token?: string
 }
 
-export const makeRequest = async ({ path, method, body, auth}: IRequestOptions) => {
+export const makeRequest = async ({ path, method, body, token}: IRequestOptions) => {
 
     const result: any = {
         success: false
@@ -23,7 +24,7 @@ export const makeRequest = async ({ path, method, body, auth}: IRequestOptions) 
         ...(body && { body: JSON.stringify(body)}),
         headers: {
             'Content-Type': 'application/json',
-            ...(auth && {'Authorization': `Bearer ${localStorage.getItem('token')}`})
+            ...(token && {'Authorization': `Bearer ${token}`})
         }
     }
 
@@ -40,3 +41,7 @@ export const makeRequest = async ({ path, method, body, auth}: IRequestOptions) 
 
     return result;
 }
+
+export const client = new ApolloClient({
+    uri: `${backendUrl}/graphql`
+  })
