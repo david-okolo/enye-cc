@@ -1,99 +1,56 @@
-import React, { FC, useEffect, useState, Dispatch, SetStateAction } from 'react';
-import { HashRouter, Link, Switch, Route } from 'react-router-dom';
-import { PageHeader, Button } from 'antd';
-import { LoginOutlined, SearchOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Home } from './Home/Home';
-import { PastSearch } from './lib/utils/interface';
-import { backendUrl } from './lib/utils/constants';
-import { Accounts } from './Accounts/Accounts';
+import React, { FC, useState } from 'react';
+import { Switch, Route, Router } from 'react-router-dom';
+import PrivateRoute from './components/PrivateRoute/Privateroute';
+import { Home } from './components/Home/Home';
+import { Navbar } from './components/Navbar/Navbar';
+import { Result } from 'antd';
+import { useAuth0 } from './react-auth0-spa';
+import history from './utils/history';
+import { useLazyQuery } from '@apollo/react-hooks';
+import { pastSearchQuery } from './utils/graphql/schemas';
+import { Loading } from './components/Loading/Loading';
 
 
 export const App: FC = () => {
-    const [isLoggedIn, setIsLoggedIn ] = useState(false);
-    const [ pastSearches, setPastSearches ]: [
-        PastSearch[],
-        Dispatch<SetStateAction<PastSearch[]>>
-    ] = useState<PastSearch[]>([]);
+
+    const [getPastSearches, { data } ] = useLazyQuery(pastSearchQuery);
     
     const [ pastSearchVisible, setPastSearchVisible ] = useState(false);
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
+    const { loading } = useAuth0();
 
-        fetch(backendUrl+(token ? '/profile' : '/search/all'), {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        }).then((response) => {
-            if(response.ok && !!token) {
-                setIsLoggedIn(true);
-            }
-            return response.json()
-        }).then((data) => {
-            setPastSearches(data.pastSearches);
-        }).catch(e => {
-            console.log(e)
-        });
-    }, [isLoggedIn])
+    if (loading) {
+      return <Loading/>
+    }
+
     return (
-        <HashRouter basename='/'>
-            <PageHeader
-            title="nearst"
-            extra={[
-                    <Button
-                        key='past-searches'
-                        type='primary'
-                        size="large"
-                        icon={<SearchOutlined/>}
-                        onClick={() => {
-                            setPastSearchVisible(true)
-                        }}
-                    >
-                        Past Searches
-                    </Button>,
-                    <Link
-                        key='login'
-                        to={isLoggedIn ? '/' : "/account" }
-                    >
-                        <Button
-                            key='logout'
-                            type='link'
-                            size="large"
-                            shape='circle'
-                            icon={isLoggedIn ? <LogoutOutlined/> : <LoginOutlined/>}
-                            onClick={() => {
-                                if(isLoggedIn) {
-                                    localStorage.removeItem('token');
-                                    setIsLoggedIn(false)
-                                }  else {
-                                    
-                                }
-                                
-                            }}
-                        >
-                            {isLoggedIn ? 'Logout' : 'Login'}
-                        </Button>
-                    </Link>
-            ]}
-            ></PageHeader>
+        <Router history={history}>
+            <Navbar 
+                setPastSearchVisible={setPastSearchVisible}
+                getPastSearches={getPastSearches}
+            />
             <Switch>
                 <Route exact path='/'>
-                    <Home
-                        setPastSearches={setPastSearches}
-                        setPastSearchVisible={setPastSearchVisible}
-                        pastSearchVisible={pastSearchVisible}
-                        isLoggedIn={isLoggedIn}
-                        pastSearches={pastSearches}
+                    <Result
+                        status="403"
+                        title="403"
+                        subTitle="Sorry, you are not authorized to access this page. Please Login"
                     />
                 </Route>
-                <Route path='/account'>
+                <PrivateRoute
+                    pastSearches={data ? data.pastSearches : []}
+                    setPastSearchVisible={setPastSearchVisible}
+                    pastSearchVisible={pastSearchVisible}
+                    path='/home' 
+                    component={Home}
+                    >
+                </PrivateRoute>
+                {/* <Route path='/account'>
                     <Accounts
                         setIsLoggedIn={setIsLoggedIn}
                     />
-                </Route>
+                </Route> */}
             </Switch>
-        </HashRouter>
+        </Router>
     )
 }

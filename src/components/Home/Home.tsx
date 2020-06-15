@@ -1,73 +1,71 @@
-import React, { FunctionComponent, useState, useEffect, Dispatch, SetStateAction } from 'react';
+// 3rd Party
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { Place } from '@googlemaps/google-maps-services-js'
 import { Row, Col, Grid, Drawer, List } from 'antd';
+import { useLazyQuery } from '@apollo/react-hooks';
+import { RightCircleOutlined } from '@ant-design/icons';
+
+// internal
 import { MapContainer } from '../Map/map';
 import { SearchPanel } from '../SearchPanel/searchPanel';
-import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks, PartialUserMapIcon, DEFAULT_OPTIONS } from '../lib/utils/constants';
+import { DEFAULT_LAT_LNG, marks, PartialUserMapIcon, DEFAULT_OPTIONS, DEFAULT_MAP_ZOOM, DEFAULT_SEARCH_RADIUS } from '../../utils/constants';
 import { MarkerOptions } from '../Map/map.interface';
 import { SearchResults } from '../SearchPanel/SearchResults/searchResults';
-import { PastSearch } from '../lib/utils/interface';
-import { RightCircleOutlined } from '@ant-design/icons';
-import { makeRequest, HTTPMethod } from '../lib/utils/request';
+import { PastSearch } from '../../utils/interface';
+import { useAuth0 } from '../../react-auth0-spa';
+import { placesQuery } from '../../utils/graphql/schemas';
+import { filterOptionsData, radiusToZoom } from '../../utils/helpers';
+import { IHomeProps } from './home.interface';
 
 const { useBreakpoint } = Grid;
 
-export const Home: FunctionComponent<{
-    isLoggedIn: boolean
-    pastSearches: PastSearch[] | undefined
-    pastSearchVisible: boolean
-    setPastSearchVisible: Dispatch<SetStateAction<boolean>>
-    setPastSearches: Dispatch<SetStateAction<PastSearch[]>>
-}> = (props) => {
+export const Home: FunctionComponent<IHomeProps> = (props) => {
 
     // initialize states
-    const [ pastClicked, setPastClicked ] = useState<boolean>(false);
-    const [ allHospitalsData, setAllHospitalsData ] = useState<Place[]>([]);
-    const [searchRadius, setSearchRadius] = useState(10);
+    const [ pastClicked, setPastClicked ] = useState(false);
+    const [ pastSearches, setPastSearches] = useState<PastSearch[]>([]);
+    const [searchRadius, setSearchRadius] = useState(DEFAULT_SEARCH_RADIUS); 
     const [query, setQuery] = useState('');
     const [value, setValue] = useState('');
-    const [ hospitalsData, setHospitalsData ] = useState(allHospitalsData);
-    const [ dataIsLoading, setDataIsLoading ] = useState(true);
+    const [ hospitalsData, setHospitalsData ] = useState<Partial<Place[]>>([]);
     const [center, setCenter] = useState(DEFAULT_LAT_LNG);
     const [ currentPage, setCurrentPage ] = useState(1);
     const [ mapMarkers, setMapMarkers ] = useState<MarkerOptions[]>([])
-    const [ mapZoom, setMapZoom ] = useState(13);
-    const [ drawerIsOpen, setDrawerIsOpen ] = useState(false);
+    const [ mapZoom, setMapZoom ] = useState(DEFAULT_MAP_ZOOM); // sets the zoom level of the map. defaults to zoom 13
+    const [ drawerIsOpen, setDrawerIsOpen ] = useState(false); // manages the state of the drawer used to display results on smaller screens
+    const [ options, setOptions ] = useState(DEFAULT_OPTIONS); // holds current search bar options
 
-    const [ options, setOptions ] = useState(DEFAULT_OPTIONS);
     const { xl } = useBreakpoint();
 
-    // Data fetching effect
+    const { user } = useAuth0(); // get user from auth0;
+
+    const [ getPlaces, { loading, data }] = useLazyQuery(placesQuery);
+
+
+    /**
+     *  Places data are fetched from this useEffect hook. It watches the change in search radius, query or location to trigger a new search
+     */
     useEffect(() => {
-        
-        if(center.lat !== DEFAULT_LAT_LNG.lat && center.lng !== DEFAULT_LAT_LNG.lng && query !== '')
-        {
-            const options = {
-                path: '/places'+(!props.isLoggedIn || pastClicked ? '/free': ''),
-                method: HTTPMethod.POST,
-                body: {
-                    query: query,
+
+        if((center.lat !== DEFAULT_LAT_LNG.lat && center.lng !== DEFAULT_LAT_LNG.lng) && query !== '') {
+
+            // GraphQL api query
+            getPlaces({
+                variables: {
+                    sub: user.sub,
+                    query,
                     radius: searchRadius * 1000,
                     latlng: center
-                },
-                auth: true
-            };
-
-            setDataIsLoading(true);
-            makeRequest(options).then(response => {
-                const { data }: { data: Place[] } = response.data;
-                setAllHospitalsData(data);
-
-                let queryFiltered;
-
-                if (query) {
-                    queryFiltered = filterData(data, query)
                 }
+            });
 
-                setHospitalsData(queryFiltered ? queryFiltered : data)
-                setDataIsLoading(false);
-
-                const markers = (queryFiltered ? queryFiltered : data).map((item: any) => {
+            
+            if(data) {
+                const places = data.places;
+                setHospitalsData(places)
+        
+                // create markers for the map
+                const markers = places.map((item: any) => {
                     return {
                         content: item.formatted_address,
                         title: item.name,
@@ -76,28 +74,31 @@ export const Home: FunctionComponent<{
                         location: item.geometry.location
                     }
                 });
-
+        
                 setMapMarkers([...markers, {
                     ...PartialUserMapIcon,
                     location: center
-                }])
+                }]);
 
-                const pastSearches = props.pastSearches?.slice() || [];
-                !pastClicked && pastSearches.push({
-                    keyword: query,
-                    radius: searchRadius * 1000,
-                    timestamp: Date.now()
-                });
+                let pastSearchArray = props.pastSearches;
 
-                props.setPastSearches(pastSearches);
-            })
-            setPastClicked(false)
-        } else {
-            setDataIsLoading(false);
+                if( !pastClicked ) {
+                    pastSearchArray = [ ...props.pastSearches, {
+                        keyword: query,
+                        radius: searchRadius * 1000,
+                        timestamp:  Date.now()
+                    }]
+                }
+
+                setPastSearches(pastSearchArray)
+
+                setPastClicked(false)
+            }
         }
-    }, [searchRadius, center, query])
 
-    // get current location
+    }, [searchRadius, query, center, data])
+
+    // get current location once
     useEffect(() => {
         if('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition((position) => {
@@ -121,29 +122,12 @@ export const Home: FunctionComponent<{
 
 
     // Event Handlers
-    const filterData = (data: any, query: string) => {
-        return data.filter(({name}: { name: string}) => {
-            return name.match(genRegex(query))
-        });
-    }
-
-    const filterOptionsData = (data: any, query: string) => {
-        return data.filter(({value}: { value: string}) => {
-            return value.match(genRegex(query))
-        });
-    }
-
     const handleSearchInputChange = async (value: string) => {
         setValue(value)
         setOptions(filterOptionsData(DEFAULT_OPTIONS, value))
-        // setCurrentPage(1);  // reset current page because the data has been filtered
-        // setHospitalsData(filteredHospitalData(allHospitalsData, query))
-        // setDrawerIsOpen(true);
-
     }
 
     const handleSearchRadiusChange = (value: number | [number, number]) => {
-        setDataIsLoading(true); // set skeleton to loading
         setCurrentPage(1); // reset current page because the data has been changed
         setSearchRadius(Array.isArray(value) ? value[0] : value)
 
@@ -171,18 +155,21 @@ export const Home: FunctionComponent<{
         }
     }
 
-    const onSearch = (value: string) => {
+    const handleSearch = (value: string) => {
         setCurrentPage(1);  // reset current page because the data has been filtered
     }
 
-    const onSelect = (value: string, option: any) => {
+    // Handler for selecting an option on the search bar
+    const handleOptionSelect = (value: string, option: any) => {
         setQuery(value);
         setDrawerIsOpen(true);
     }
 
-    // render
+    
 
+    // render
     const columnSpan = xl ? 12 : 24; // if the screen size is xl split into 2 columns if not take full page
+
     return <Row style={{
         display: 'flex',
         flexFlow: xl ? 'row' : 'column',
@@ -201,7 +188,7 @@ export const Home: FunctionComponent<{
             >
                 <List
                     itemLayout="horizontal"
-                    dataSource={props.pastSearches}
+                    dataSource={pastSearches.length > 0 ? pastSearches : props.pastSearches}
                     renderItem={item => (
                     <List.Item
                         actions={[
@@ -210,7 +197,7 @@ export const Home: FunctionComponent<{
                                     setPastClicked(true)
                                     handleSearchInputChange(item.keyword)
                                     handleSearchRadiusChange(item.radius / 1000)
-                                    onSelect(item.keyword, {})
+                                    handleOptionSelect(item.keyword, {})
                                     props.setPastSearchVisible(false);
                                 }}
                                 style={{
@@ -230,7 +217,7 @@ export const Home: FunctionComponent<{
                                     within {item.radius / 1000}KM
                                 </div>
                             }
-                            description={new Date(item.timestamp).toLocaleString()}
+                            description={new Date(Number(item.timestamp)).toLocaleString()}
                         />
                     </List.Item>
                     )}
@@ -252,11 +239,11 @@ export const Home: FunctionComponent<{
                 hospitalsData={hospitalsData}
                 searchRadius={searchRadius}
                 query={value}
-                dataIsLoading={dataIsLoading}
+                dataIsLoading={loading}
                 currentPage={currentPage}
                 center={center}
-                onSearch={onSearch}
-                onSelect={onSelect}
+                onSearch={handleSearch}
+                onSelect={handleOptionSelect}
                 options={options}
             />
         </Col>
@@ -274,26 +261,28 @@ export const Home: FunctionComponent<{
                 markerLocations={mapMarkers}
             ></MapContainer>
         </Col>
-        { !xl &&
-            <Drawer
-                title="Results"
-                placement="bottom"
-                onClose={() => {
-                    setDrawerIsOpen(false)
-                }}
-                visible={drawerIsOpen}
-                mask={false}
-            >
-                <SearchResults
-                    pagination={false}
-                    handleMarkerIconClick={handleMarkerIconClick}
-                    handlePageChange={handlePageChange}
-                    center={center}
-                    hospitalsData={hospitalsData}
-                    currentPage={currentPage}
-                    pageSize={3}
-                ></SearchResults>
-            </Drawer>
+        
+        { // to display results for smaller screens
+            !xl &&
+                <Drawer
+                    title="Results"
+                    placement="bottom"
+                    onClose={() => {
+                        setDrawerIsOpen(false)
+                    }}
+                    visible={drawerIsOpen}
+                    mask={false}
+                >
+                    <SearchResults
+                        pagination={false}
+                        handleMarkerIconClick={handleMarkerIconClick}
+                        handlePageChange={handlePageChange}
+                        center={center}
+                        hospitalsData={hospitalsData}
+                        currentPage={currentPage}
+                        pageSize={3}
+                    ></SearchResults>
+                </Drawer>
         }
     </Row>
 }
