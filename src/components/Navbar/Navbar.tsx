@@ -23,6 +23,9 @@ export const Navbar: FC<INavbarProps> = (props) => {
                     >Login</Button>
             ] : [
                     <Button
+                      style={{
+                        borderRadius: '10px'
+                      }}
                         key='past-searches'
                         type='primary'
                         size="large"
