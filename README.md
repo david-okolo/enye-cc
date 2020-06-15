@@ -1,3 +1,5 @@
+![Node.js CI](https://github.com/david-okolo/enye-cc/workflows/Node.js%20CI/badge.svg)
+
 # Enye Cohort 4: Coding Challenge
 
 A solution to locate nearest hospital, clinic, pharmacy or medical office. Inspired by the need during the COVID-19 pandemic.
