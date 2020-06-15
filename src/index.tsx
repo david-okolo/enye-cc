@@ -12,7 +12,7 @@ import { client } from './utils/request';
 // A function that routes the user to the right place
 // after login
 const onRedirectCallback =( appState: any = undefined) => {
-  history.push('/home');
+  history.push('/main');
 };
 
 ReactDOM.render(

@@ -23,7 +23,7 @@ export const SearchPanel: FunctionComponent<ISearchPanelProps> = (props) => {
                 <Col>
                     <FaMapMarkedAlt style={{
                         fontSize: '28px',
-                        color: '#08979c'
+                        color: '#6c63ff'
                     }}/>
                 </Col>
             </Row>}
