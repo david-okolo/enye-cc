@@ -1,3 +1,35 @@
+# Enye Cohort 4: Coding Challenge
+
+A solution to locate nearest hospital, clinic, pharmacy or medical office. Inspired by the need during the COVID-19 pandemic.
+
+Project's [Backend](https://github.com/david-okolo/enye-cc-backend)
+
+### Technologies
+
+- Reactjs
+- TypeScript
+- Auth0
+- Apollo-GraphQL client
+- Ant Design Library
+
+### Application Requirements
+
+**Core**
+- Users should be able to search for Hospitals, Pharmacies, Clinics and Medical Offices
+- Users should be able to see past results
+    - There should be a place that a user can click to see all the results that have been searched on the app
+    - Clicking on a past search result should trigger a request and the results should be displayed for the user.
+    - Hint - You need to save the past searches in a database
+
+**Authentication**
+- User should be able to signup for the application
+- User should be able to access the application using their email and password
+- User should only be allowed to access the application if they are signed in
+
+**GraphQL**
+- Build a GraphQL layer that pulls the users specific search results from your database or API
+- User should only see their own search history
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
@@ -37,8 +69,6 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## Learn More
+### `npm run deploy`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Builds the application for production and deploys it to github pages. Make sure you set the homepage attribute in your package.json

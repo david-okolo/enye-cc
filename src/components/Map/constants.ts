@@ -1,3 +1,5 @@
+
+// map style constant
 export const darkMapStyleOptions = [
     {
       "elementType": "geometry",

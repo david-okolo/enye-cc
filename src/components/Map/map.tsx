@@ -3,7 +3,7 @@ import GoogleMapReact from 'google-map-react';
 import { IMapContainer } from './map.interface';
 import { Marker } from './Marker/marker';
 import { darkMapStyleOptions } from './constants';
-import { GOOGLE_API_KEY } from '../lib/utils/constants';
+import { GOOGLE_API_KEY } from '../../utils/constants';
 
 
 

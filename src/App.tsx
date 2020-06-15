@@ -1,217 +1,56 @@
-import React, { FunctionComponent, useState, ChangeEvent, useEffect } from 'react';
-import { Place } from '@googlemaps/google-maps-services-js'
-import { Row, Col, Typography, Grid, Drawer } from 'antd';
-import { MapContainer } from './Map/map';
-import { SearchPanel } from './SearchPanel/searchPanel';
-import { fetchHospitals } from './lib/utils/placesRequest';
-import { DEFAULT_LAT_LNG, genRegex, radiusToZoom, marks, PartialUserMapIcon } from './lib/utils/constants';
-import { MarkerOptions } from './Map/map.interface';
-import { getDistance } from 'geolib';
-import { SearchResults } from './SearchPanel/SearchResults/searchResults';
-
-const { Title } = Typography;
-const { useBreakpoint } = Grid;
-
-export const App: FunctionComponent = () => {
-
-    // initialize states
-    const [ allHospitalsData, setAllHospitalsData ] = useState<Place[]>([]);
-    const [searchRadius, setSearchRadius] = useState(10);
-    const [query, setQuery] = useState('');
-    const [ hospitalsData, setHospitalsData ] = useState(allHospitalsData);
-    const [ dataIsLoading, setDataIsLoading ] = useState(true);
-    const [center, setCenter] = useState(DEFAULT_LAT_LNG);
-    const [ currentPage, setCurrentPage ] = useState(1);
-    const [ mapMarkers, setMapMarkers ] = useState<MarkerOptions[]>([])
-    const [ mapZoom, setMapZoom ] = useState(13);
-    const [ drawerIsOpen, setDrawerIsOpen ] = useState(false);
-    const { xl } = useBreakpoint();
-
-    // Data fetching effect
-    useEffect(() => {
-        
-        if(center.lat !== DEFAULT_LAT_LNG.lat && center.lng !== DEFAULT_LAT_LNG.lng)
-        {
-            fetchHospitals(searchRadius, center).then(response => {
-                const { data }: { data: Place[] } = response;
-                const filtered = data.filter((item) => {
-                    if(item.geometry) {
-                        return (getDistance(item.geometry.location, center) / 1000) < searchRadius
-                    }
-                    return false;
-                }).sort((itemA, itemB) => {
-                    // sorts based of their proximity to the user
-                    if((itemA.geometry&& itemB.geometry) && (getDistance(itemA.geometry.location, center) > getDistance(itemB.geometry.location, center))) {
-                        return 1;
-                    }
-
-                    if((itemA.geometry&& itemB.geometry) && (getDistance(itemA.geometry.location, center) < getDistance(itemB.geometry.location, center))) {
-                        return -1;
-                    }
-
-                    return 0;
-                })
-                setAllHospitalsData(filtered);
-
-                let queryFiltered;
-
-                if (query) {
-                    queryFiltered = filteredHospitalData(filtered, query)
-                }
-
-                setHospitalsData(queryFiltered ? queryFiltered : filtered)
-                setDataIsLoading(false);
-
-                const markers = (queryFiltered ? queryFiltered : filtered).map((item: any) => {
-                    return {
-                        content: item.formatted_address,
-                        title: item.name,
-                        color: 'white',
-                        text: item.id,
-                        location: item.geometry.location
-                    }
-                });
-
-                setMapMarkers([...markers, {
-                    ...PartialUserMapIcon,
-                    location: center
-                }])
-            })
-        }
-    }, [searchRadius, center, query])
-
-    // get current location
-    useEffect(() => {
-        if('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
-                setCenter({
-                    lat: latitude,
-                    lng: longitude
-                })
-                setMapMarkers([
-                    { 
-                        ...PartialUserMapIcon,
-                        location: {
-                            lat: latitude,
-                            lng: longitude
-                        }
-                    }
-                ]);
-            })
-        }
-    }, []);
+import React, { FC, useState } from 'react';
+import { Switch, Route, Router } from 'react-router-dom';
+import PrivateRoute from './components/PrivateRoute/Privateroute';
+import { Home } from './components/Home/Home';
+import { Navbar } from './components/Navbar/Navbar';
+import { Result } from 'antd';
+import { useAuth0 } from './react-auth0-spa';
+import history from './utils/history';
+import { useLazyQuery } from '@apollo/react-hooks';
+import { pastSearchQuery } from './utils/graphql/schemas';
+import { Loading } from './components/Loading/Loading';
 
 
-    // Event Handlers
-    const filteredHospitalData = (data: any, query: string) => {
-        return data.filter(({name}: { name: string}) => {
-            return name.match(genRegex(query))
-        });
+export const App: FC = () => {
+
+    const [getPastSearches, { data } ] = useLazyQuery(pastSearchQuery);
+    
+    const [ pastSearchVisible, setPastSearchVisible ] = useState(false);
+
+    const { loading } = useAuth0();
+
+    if (loading) {
+      return <Loading/>
     }
 
-    const handleSearchInputChange = async (e: ChangeEvent<HTMLInputElement>) => {
-        const query = e.target.value
-        setQuery(query);
-        setCurrentPage(1);  // reset current page because the data has been filtered
-        setHospitalsData(filteredHospitalData(allHospitalsData, query))
-        setDrawerIsOpen(true);
-
-    }
-
-    const handleSearchRadiusChange = (value: number | [number, number]) => {
-        setDataIsLoading(true); // set skeleton to loading
-        setCurrentPage(1); // reset current page because the data has been changed
-        setSearchRadius(Array.isArray(value) ? value[0] : value)
-
-        const realValue: number = typeof value === 'number' ? value : value[0];
-        const zoom = radiusToZoom(realValue);
-        
-        setMapZoom(zoom);
-    }
-
-    const handlePageChange = (page: number, pageSIze: number | undefined) => {
-        setCurrentPage(page)
-    }
-
-    const handleMarkerIconClick = (location: MarkerOptions) => {
-        setMapMarkers([{
-            ...PartialUserMapIcon,
-            location: center
-        }, location])
-
-        if(xl) {
-            setDrawerIsOpen(false);
-        } else {
-            setQuery(location.title)
-            setDrawerIsOpen(true)
-        }
-    }
-
-    // render
-
-    const columnSpan = xl ? 12 : 24; // if the screen size is xl split into 2 columns if not take full page
-    return <Row style={{
-        display: 'flex',
-        flexFlow: xl ? 'row' : 'column',
-        height: '100vh',
-        alignItems: 'stretch'
-    }}>
-        <Col span={columnSpan} style={{
-            padding: '24px 24px 0 24px',
-            backgroundColor: '#ffffff',
-            flex: (xl) ? '0 0 100%' :'none'
-        }}>
-            <Title level={xl ? 2 : 4}>Find nearest hospital</Title>
-            <SearchPanel
-                cropped={!!xl}
-                handleMarkerIconClick={handleMarkerIconClick}
-                handleSearchInputChange={handleSearchInputChange}
-                handleSearchRadiusChange={handleSearchRadiusChange}
-                handlePageChange={handlePageChange}
-                marks={marks}
-                hospitalsData={hospitalsData}
-                searchRadius={searchRadius}
-                query={query}
-                dataIsLoading={dataIsLoading}
-                currentPage={currentPage}
-                center={center}
+    return (
+        <Router history={history}>
+            <Navbar 
+                setPastSearchVisible={setPastSearchVisible}
+                getPastSearches={getPastSearches}
             />
-        </Col>
-        <Col span={columnSpan} style={{
-            backgroundColor: '#eeeeee',
-            display: 'flex',
-            flex: 1,
-            overflow: 'auto'
-        }}>
-            <MapContainer
-                handleMarkerIconClick={handleMarkerIconClick}
-                center={center}
-                setCenter={setCenter}
-                zoom={mapZoom}
-                markerLocations={mapMarkers}
-            ></MapContainer>
-        </Col>
-        { !xl &&
-            <Drawer
-                title="Results"
-                placement="bottom"
-                onClose={() => {
-                    setDrawerIsOpen(false)
-                }}
-                visible={drawerIsOpen}
-                mask={false}
-            >
-                <SearchResults
-                    pagination={false}
-                    handleMarkerIconClick={handleMarkerIconClick}
-                    handlePageChange={handlePageChange}
-                    center={center}
-                    hospitalsData={hospitalsData}
-                    currentPage={currentPage}
-                    pageSize={3}
-                ></SearchResults>
-            </Drawer>
-        }
-    </Row>
+            <Switch>
+                <Route exact path='/'>
+                    <Result
+                        status="403"
+                        title="403"
+                        subTitle="Sorry, you are not authorized to access this page. Please Login"
+                    />
+                </Route>
+                <PrivateRoute
+                    pastSearches={data ? data.pastSearches : []}
+                    setPastSearchVisible={setPastSearchVisible}
+                    pastSearchVisible={pastSearchVisible}
+                    path='/home' 
+                    component={Home}
+                    >
+                </PrivateRoute>
+                {/* <Route path='/account'>
+                    <Accounts
+                        setIsLoggedIn={setIsLoggedIn}
+                    />
+                </Route> */}
+            </Switch>
+        </Router>
+    )
 }
