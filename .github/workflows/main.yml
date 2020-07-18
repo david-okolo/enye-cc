@@ -1,0 +1,30 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    - name: Deploy to Heroku
+      uses: AkhileshNS/heroku-deploy@v3.2.6
+      with:
+        heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+        heroku_email: david.okolo@icloud.com
+        heroku_app_name: david-enye-c4
+        buildpack: "https://github.com/mars/create-react-app-buildpack.git"
